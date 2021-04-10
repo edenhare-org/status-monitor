@@ -22,7 +22,7 @@ logger.propagate = True
 logger.info("%s Module Version %s", __name__, MODULE_VERSION)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
-import emaillib as mail
+import emaillib
 
 try:
     pool = urllib3.PoolManager()
@@ -158,17 +158,32 @@ def sendUp(**kwargs):
 def sendDown(**kwargs):
     """send a message to statuspage indicating the endpoint is down"""
     logger.debug("sending down message")
+    
     messageBody = kwargs.get("MessageBody")
-    mailConfig = kwargs.get("MailConfig")
     component = kwargs.get("Component")
+    alerts=kwargs.get('Alerts', False)
+    send = kwargs.get('Send', False)
+    status = kwargs.get('Status', 0)
+    statusText = kwargs.get('Name', "Not Defined")
+    rTime = kwargs.get('Time', 0)
+    endpoint = kwargs.get('Endpoint', None)
+    url = kwargs.get('Url', None)
+    alertConfig=kwargs.get('AlertConfig', None)
+    emailConfig = kwargs.get('EmailConfig', None)
 
     msg = EmailMessage()
-    msg["From"] = mailConfig.mailfrom
-
+    msg["From"] = emailConfig.get('from')
+    
     msg["Subject"] = "DOWN"
     msg["To"] = component
     msg.set_content(messageBody)
-    sendMessage(mailConfig, component, msg)
+    kwargs['msg'] = msg
+    kwargs['MailTo'] = component
+    try:
+        emaillib.send(**kwargs)
+    except Exception as e:
+        logger.error(e)
+        raise Exception from e
 
 
 def sendDegraded(**kwargs):
