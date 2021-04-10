@@ -12,6 +12,7 @@ import json
 import os
 import datetime
 import urllib3
+from email.message import EmailMessage
 from configparser import ConfigParser
 
 MODULE_VERSION="statuspage.1.0.0"
@@ -90,14 +91,7 @@ def make(**kwargs):
     if config.get('StatusPage').get('pageids') is None:
         logger.critical("no pageIds in configuration")
         raise ConnectionAbortedError ("no pageIds in configuration")
-
-    for key, value in config.items():
-        logger.debug("%s = %s", key, value)
         
-    if endpoint in config:
-        logger.debug("%s exists in %s", endpoint, config)
-    logger.debug("line97 %s", config[endpoint])
-    logger.debug("%s", config.get(endpoint))
     # check for endpoint in the config
     try:
         componentid = config.get(endpoint)
@@ -107,10 +101,8 @@ def make(**kwargs):
         logger.error(componentid)
         raise AttributeError from e
     else:
-        logger.debug('have config for %s', endpoint)
-        logger.error("%s",config.get(endpoint))
-        logger.debug("%s", componentid)
-    
+        logger.debug('have config data for %s', endpoint)
+
     try:
         componentid = config.get(endpoint).get('componentid')
     except Exception as e:
@@ -124,12 +116,12 @@ def make(**kwargs):
         statusMessage = f"Service is operating as expected. \nReceived {status} (statusText) in {rTime:.3f}ms"
         kwargs['Component'] = componentid
         kwargs['MessageBody'] = statusMessage
-        sendUp(kwargs)
+        sendUp(**kwargs)
     elif statusText == "down":
         statusMessage = f"Service is not responding to requests."
         kwargs['Component'] = componentid
         kwargs['MessageBody'] = statusMessage
-        sendDown(kwargs)
+        sendDown(**kwargs)
     elif statusText == "degraded":
         statusMessage = f"Service is not responding to requests."
         sendDown(MessageBody=statusMessage, Component=componentid, MailConfig=emailConfig)
@@ -157,7 +149,7 @@ def sendUp(**kwargs):
     msg.set_content(messageBody)
     kwargs['msg'] = msg
     try:
-        emaillib.send(kwargs)
+        emaillib.send(**kwargs)
     except Exception as e:
         logger.error(e)
         raise Exception from e
