@@ -96,9 +96,7 @@ def send(**kwargs):
 
 def checkAddress(a):
     
-    logger.debug("checking address %s", a)
     idx = a.find('@')
-    logger.debug("index is %s",idx)
     if idx < 0:
         return False
     
