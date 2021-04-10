@@ -44,6 +44,10 @@ def send(**kwargs):
     if emailConfig.get('server') is None:
         raise AttributeError ("No SMTP/Email server defined. Notification not sent.")
     
+    # verify the mail to address is in RFC822 format user@domain
+    if checkAddress(sendto) is False:
+        raise AttributeError (f'supplied send to address format is incorrect: {sendto}')
+        
     try:
         server = smtplib.SMTP(emailConfig.get('server'),
             emailConfig.get('port'))
@@ -90,3 +94,12 @@ def send(**kwargs):
                 
     return None
 
+def checkAddress(a):
+    
+    logger.debug("checking address %s", a)
+    idx = a.find('@')
+    logger.debug("index is %s",idx)
+    if idx < 0:
+        return False
+    
+    return True
