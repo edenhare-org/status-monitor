@@ -129,6 +129,7 @@ def make(**kwargs):
 
 def sendUp(**kwargs):
     """send a message to statuspage indicating the endpoint is up"""
+    logger.debug("sending up message")
     messageBody = kwargs.get("MessageBody")
     component = kwargs.get("Component")
     alerts=kwargs.get('Alerts', False)
@@ -156,6 +157,7 @@ def sendUp(**kwargs):
 
 def sendDown(**kwargs):
     """send a message to statuspage indicating the endpoint is down"""
+    logger.debug("sending down message")
     messageBody = kwargs.get("MessageBody")
     mailConfig = kwargs.get("MailConfig")
     component = kwargs.get("Component")
