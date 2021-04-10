@@ -97,18 +97,13 @@ def make(**kwargs):
         componentid = config.get(endpoint)
     except Exception as e:
         logger.error("no statuspage config for %s: %s", endpoint, e)
-        logger.error(config)
-        logger.error(componentid)
-        raise AttributeError from e
-    else:
-        logger.debug('have config data for %s', endpoint)
+        raise AttributeError (f"no statuspage config for {endpoint}: {e}")
 
     try:
         componentid = config.get(endpoint).get('componentid')
     except Exception as e:
-        logger.error("no statuspage component for %s: %s", endpoint, e)
-        logger.error(config)
-        raise AttributeError from e
+        logger.error("no statuspage component for %s: ", endpoint)
+        raise AttributeError (f"no statuspage component for {endpoint}: {e}")
     else:
         logger.debug("endpoint = %s config=%s", endpoint, config.get('StatusPage'))
     
@@ -121,7 +116,10 @@ def make(**kwargs):
         statusMessage = f"Service is not responding to requests."
         kwargs['Component'] = componentid
         kwargs['MessageBody'] = statusMessage
-        sendDown(**kwargs)
+        try:
+            sendDown(**kwargs)
+        except Exception as e:
+            raise ConnectionAbortedError from e
     elif statusText == "degraded":
         statusMessage = f"Service is not responding to requests."
         sendDown(MessageBody=statusMessage, Component=componentid, MailConfig=emailConfig)
@@ -152,7 +150,7 @@ def sendUp(**kwargs):
     try:
         emaillib.send(**kwargs)
     except Exception as e:
-        logger.error(e)
+        logger.error("could not send email: %s", e)
         raise Exception from e
 
 def sendDown(**kwargs):
