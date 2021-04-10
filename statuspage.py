@@ -96,14 +96,14 @@ def make(**kwargs):
     try:
         componentid = config.get(endpoint)
     except Exception as e:
-        logger.error("no statuspage config for %s: %s", endpoint, e)
-        raise AttributeError (f"no statuspage config for {endpoint}: {e}")
+        #logger.error("no statuspage config for %s: %s", endpoint, e)
+        raise AttributeError (f"no statuspage config for {endpoint}")
 
     try:
         componentid = config.get(endpoint).get('componentid')
     except Exception as e:
-        logger.error("no statuspage component for %s: ", endpoint)
-        raise AttributeError (f"no statuspage component for {endpoint}: {e}")
+        #logger.error("no statuspage component for %s: ", endpoint)
+        raise AttributeError (f"no statuspage component for {endpoint}")
     else:
         logger.debug("endpoint = %s config=%s", endpoint, config.get('StatusPage'))
     
