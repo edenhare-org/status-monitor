@@ -8,11 +8,11 @@ logger = logging.getLogger(__name__)
 logger.setLevel('DEBUG')
 
 logger.info("%s Module Version %s", __name__, MODULE_VERSION)
-
+logging.getLogger('smtplib').setLevel(logging.ERROR)
 
 def send(**kwargs):
     
-    logger.debug(kwargs)
+    #logger.debug(kwargs)
     
     alerts=kwargs.get('Alerts', False)
     send = kwargs.get('Send', False)
@@ -44,6 +44,10 @@ def send(**kwargs):
     if emailConfig.get('server') is None:
         raise AttributeError ("No SMTP/Email server defined. Notification not sent.")
     
+    if isinstance(msg,str) is True:
+        logger.warning("Message is the wrong type.")
+        raise AttributeError("Message is the wrong type.")
+        
     # verify the mail to address is in RFC822 format user@domain
     if checkAddress(sendto) is False:
         raise AttributeError (f'supplied send to address format is incorrect: {sendto}')
@@ -75,22 +79,24 @@ def send(**kwargs):
         server.login(emailConfig.get('authuser'), emailConfig.get('authpass'))
     except Exception as error:
         logging.critical(
-            "Could not initialize TLS SMTP connection %s:%s: %s",
+            "Could not authenticate the SMTP connection %s:%s:%s %s",
             emailConfig.get('server'),
             emailConfig.get('port'),
+            emailConfig.get('authuser'),
             error
         )
-        raise ConnectionAbortedError from error
-    
+        raise ConnectionAbortedError (
+            f"Could not authenticate the SMTP connection {emailConfig.get('authuser')}")
+
+
     try:
         server.sendmail(emailConfig.get('from'), [sendto], msg.as_string())
     except Exception as error:
-        logging.error("type error: %s", type(error))
-        logging.error("cannot send email: %s", error)
-        raise ConnectionRefusedError from error
+        logger.critical("cannot send email: %s", error)
+        raise ConnectionRefusedError (f"cannot send email: {error}")
     else:
-        logging.debug("Successfully sent email")
-        logging.debug("to: %s msg: %s", sendto, msg)
+        logger.debug("Successfully sent email")
+        logger.debug("to: %s msg: %s", sendto, msg)
                 
     return None
 
