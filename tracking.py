@@ -15,6 +15,8 @@ logger.info("%s Module Version %s", __name__, MODULE_VERSION)
 #     counter: int
 #     timer: float
 #     time: utc_timestamp
+#     alerts: int
+#     last_alert = utc_timestamp
 #   }   
 # }
 history = {}
@@ -31,13 +33,13 @@ def save(**kwargs):
     lastCheck = kwargs.get('CheckTime', None)
     downthreshold = kwargs.get('Down', 0)
     degradedthreshold = kwargs.get('Degraded', 0)
+    alertfrequency = kwargs.get('AlertFrequency',5)
     
     # if we don't have an endpoint, raise an error
     if endpoint is None:
         raise AttributeError ("no endpoint provided")
     
     logger.debug('history type = %s', type(history))
-
  
     logger.debug('history = %s', history)
     #try:
@@ -59,15 +61,20 @@ def save(**kwargs):
     
     counter = data.get('counter',5)
     timer = data.get('timer', 0)
+    alerts = data.get('alerts', 0)
     if state == "down" or state == "degraded":
         history[endpoint]['counter'] = counter + 1
     elif state == "up":
         history[endpoint]['counter'] = 0
+
     
-    if int(data.get('counter')) > int(downthreshold):
+    if int(data.get('counter')) > int(downthreshold) and \
+        int(data.get('counter')) % int(alertfrequency) == 0:
         alert = True
         alertType = "count"
-    elif int(rtime) > int(degradedthreshold) and int(data.get('counter')) > int(downthreshold):
+    elif int(rtime) > int(degradedthreshold) and \
+        int(data.get('counter')) > int(downthreshold) and \
+        int(data.get('counter')) % int(alertfrequency) == 0:
         alert = True
         alertType = "time"
     elif lastState != state:
