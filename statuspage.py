@@ -65,10 +65,15 @@ for section_name in parser.sections():
 
 logger.debug("Config = %s", config)
 
+components = {}
+# structure
+# components = {
+    
+# }
 
 def make(**kwargs):
     
-    logger.debug("kwargs=%s", kwargs)
+    #logger.debug("kwargs=%s", kwargs)
     
     alerts=kwargs.get('Alerts', False)
     send = kwargs.get('Send', False)
@@ -103,9 +108,15 @@ def make(**kwargs):
         componentid = config.get(endpoint).get('componentid')
     except Exception as e:
         #logger.error("no statuspage component for %s: ", endpoint)
-        raise AttributeError (f"no statuspage component for {endpoint}")
+        raise AttributeError (f"no statuspage component id for {endpoint}")
     else:
         logger.debug("endpoint = %s config=%s", endpoint, config.get('StatusPage'))
+    
+    try:
+        x = componentid.replace('@.*', '')
+    except Exception as e:
+        pass
+    logger.debug ('componentid = %s', x)
     
     if statusText == "up":
         statusMessage = f"Service is operating as expected. \nReceived {status} (statusText) in {rTime:.3f}ms"
@@ -146,7 +157,7 @@ def sendUp(**kwargs):
     msg["Subject"] = "UP"
     msg["To"] = component
     msg.set_content(messageBody)
-    kwargs['msg'] = msg
+    kwargs['Message'] = msg
     try:
         emaillib.send(**kwargs)
     except Exception as e:
@@ -175,7 +186,7 @@ def sendDown(**kwargs):
     msg["Subject"] = "DOWN"
     msg["To"] = component
     msg.set_content(messageBody)
-    kwargs['msg'] = msg
+    kwargs['Message'] = msg
     kwargs['MailTo'] = component
     try:
         emaillib.send(**kwargs)
