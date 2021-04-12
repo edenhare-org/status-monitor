@@ -321,6 +321,7 @@ def main():
                         State=status.get('text'),
                         ResponseTime=status.get('time'),
                         CheckTime=checkTime,
+                        AlertFrequency=config.get('Alerts').get('frequency',5),
                         Down=value.get('downthreshold',
                             config.get('Default').get('downthreshold')),
                         Degraded=value.get('degradedthreshold',
