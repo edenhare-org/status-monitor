@@ -4,6 +4,8 @@ import time
 import datetime
 import logging
 import json
+import signal
+import importlib
 from configparser import ConfigParser
 import optparse
 
@@ -36,6 +38,20 @@ else:
 import tracking
 logging.getLogger('tracking').setLevel(logging.INFO)
 
+def keyboardInterruptHandler(signal, frame):
+    """catch the keyboard interrupt
+
+    Args:
+        signal (signal): the signal name to intercept
+        frame ([type]): [description]
+    """
+    logging.critical(
+        "KeyboardInterrupt (ID: {}) has been caught. Cleaning up...".format(
+            signal)
+    )
+    exit(0)
+
+signal.signal(signal.SIGINT, keyboardInterruptHandler)
 
 def loadConfiguration(**kwargs):
 
@@ -194,7 +210,7 @@ def evaluateEndpoint(**kwargs):
     endpointBody = value.get('body', None)
     endpointHeaders = value.get('headers', None)
                 
-    logger.info("Processing %s", endpointName)
+    logger.info("----- Processing %s -----", endpointName)
     logger.debug("%s: url=%s timeout=%s retries=%s",
         endpointName, endpointUrl, endpointTimeout,
         endpointRetries)
@@ -290,7 +306,36 @@ def main():
         logger.warning('alerts disabled by configuration')
         alerts = None
     
-            
+    # if we are supposed to notify some other service, import it.
+    # reporting services are 
+    #    Atlassian StatusPage
+    #! Note: the reporting module must provide a function named 'make'
+    if config.get('Alerts').get('reporting', None) is not None:
+        # This is a dynamic import
+        try:
+            reporting = importlib.import_module(
+                config.get('Alerts').get('reporting', None)
+            )
+        except Exception as e:
+            logger.critical('no status page reporting module: %s', e)
+        else:
+            #
+            # Here we are going to get the component details and update
+            # the config dict and then the config.ini 
+            # This code is execyted only if the import wasw successful. The
+            # elements inserted are only used when there is a report to make
+            # associated with this reporting module.  Other reporting 
+            # modules may insert other information.
+            # 
+            #! The requirement is that the name of the component on Statuspage
+            #! must be the same as the name in the config.ini.  If the name
+            #! doesn't exist in config.ini it is possible for there to be
+            #! entries to be added.
+            config = reporting.updateConfig(config)
+    else:
+        reporting = None
+    
+    #sys.exit(0)        
     while True:
         logger.debug("top of while")
         
@@ -350,7 +395,7 @@ def main():
         logger.info("Next check in %s seconds",
             config.get('Default').get('delay',300))
         
-        sys.exit(0)
+        #sys.exit(0)
         
         time.sleep(int(config.get('Default').get('delay',300)))
         logger.debug("Wake Up!")

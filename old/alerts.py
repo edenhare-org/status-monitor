@@ -77,11 +77,11 @@ def notify(**kwargs):
             kwargs['MailTo'] = alertConfig.get('email', None)
             mail.send(**kwargs)
         except Exception as e:
-            logger.critical("could not send email: %s", e)
+            logger.error("could not send email: %s", e)
         try:
             reporting.make(**kwargs)
         except Exception as e:
-            logger.critical("could not send notification: %s", e)
+            logger.error("could not send notification: %s", e)
     elif alerts is True and send is False:
         logger.debug("OK - no notification required")
         if statusText is "up":

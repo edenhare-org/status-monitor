@@ -65,14 +65,24 @@ for section_name in parser.sections():
 
 logger.debug("Config = %s", config)
 
-components = {}
+incidents = {}
 # structure
-# components = {
-    
+# incidents = {
+#    id = componentid,
+#    incident = incidentid
+#    created = creation date
 # }
 
+components = []
+
 def make(**kwargs):
-    
+#    
+#    global components
+#    
+#    if not components:
+#        components = getComponentList()
+#        
+
     #logger.debug("kwargs=%s", kwargs)
     
     alerts=kwargs.get('Alerts', False)
@@ -112,17 +122,26 @@ def make(**kwargs):
     else:
         logger.debug("endpoint = %s config=%s", endpoint, config.get('StatusPage'))
     
+    address, domain = componentid.split("@")
+    logger.debug("address = %s domain = %s", address, domain)
+            
     try:
-        x = componentid.replace('@.*', '')
+        openIncidents = getUnresolvedIncidentList()
     except Exception as e:
-        pass
-    logger.debug ('componentid = %s', x)
+        logger.error("cannot get open incidents: %s", e)
+    else:
+        logger.debug("open incidents = %s", openIncidents)
+    # is this component in an open incident?
+    activeIncident = findComponentInIncident(address, openIncidents)
+    logger.debug("activeIncident = %s", activeIncident)
     
     if statusText == "up":
         statusMessage = f"Service is operating as expected. \nReceived {status} (statusText) in {rTime:.3f}ms"
         kwargs['Component'] = componentid
         kwargs['MessageBody'] = statusMessage
         sendUp(**kwargs)
+        # check for an incident.
+        # if an incident with [AUTO] in the title, close it.
     elif statusText == "down":
         statusMessage = f"Service is not responding to requests."
         kwargs['Component'] = componentid
@@ -131,11 +150,48 @@ def make(**kwargs):
             sendDown(**kwargs)
         except Exception as e:
             raise ConnectionAbortedError from e
+        # check for an incident
+        # if no incident, then create one
+        logger.debug("requesting incident creation")
+        try:
+            response = createIncident(
+                Name="[AUTO] new incident",
+                Message=f"Incident created: {statusMessage}",
+                Components={
+                    address: "major_outage",
+                    },
+                ComponentIdList=[address],
+                State="major_outage"
+            )
+        except Exception as e:
+            logger.error("cannot create incident: %s", e)
+        else:
+            logger.debug("created incident: %s", response)
     elif statusText == "degraded":
         statusMessage = f"Service is not responding to requests."
         sendDown(MessageBody=statusMessage, Component=componentid, MailConfig=emailConfig)
     return None
 
+def updateConfig(config):
+    
+    # This module takes the provided configuration file and tries to insert
+    # the component details
+    
+    logger.debug("provided config = %s", config)
+    
+    try:
+        components = getComponentList()
+    except Exception as e:
+        logger.error("cannot retrieve component list: %s", e)    
+        raise ValueError ("cannot retrieve component list") from e
+    
+    for a, details in enumerate(components):
+        # look for the name of this component in the Sections of the
+        # config.ini
+        logger.debug("details = %s", details)
+        if details.get('name') in config:
+            logger.debug("found %s", details.get('name'))
+    
 def sendUp(**kwargs):
     """send a message to statuspage indicating the endpoint is up"""
     logger.debug("sending up message")
@@ -158,6 +214,7 @@ def sendUp(**kwargs):
     msg["To"] = component
     msg.set_content(messageBody)
     kwargs['Message'] = msg
+    kwargs['MailTo'] = component
     try:
         emaillib.send(**kwargs)
     except Exception as e:
@@ -208,12 +265,12 @@ def sendDegraded(**kwargs):
         address, domain = component.split("@")
         sendto = f"{address}+degraded_performance@{domain}"
     except Exception as error:
-        logging.error("cannot split forTo address: %s", error)
+        logger.error("cannot split forTo address: %s", error)
         sendto = component
     msg["Subject"] = "DOWN"
     msg["To"] = sendto
     msg.set_content(messageBody)
-    logging.warning("DegradedPerformance Emaiil for %s to %s", name, sendto)
+    logger.warning("DegradedPerformance Emaiil for %s to %s", name, sendto)
     sendMessage(mailConfig, sendto, msg)
 
 
@@ -229,56 +286,57 @@ def sendPartialDown(**kwargs):
         address, domain = component.split("@")
         sendto = f"{address}+partial_outage@{domain}"
     except Exception as error:
-        logging.error("cannot split To address: %s", error)
+        logger.error("cannot split To address: %s", error)
         sendto = component
     msg["Subject"] = "DOWN"
     msg["To"] = sendto
     msg.set_content(messageBody)
-    logging.warning("PartialDown Emaiil to %s", sendto)
+    logger.warning("PartialDown Emaiil to %s", sendto)
     sendMessage(mailConfig, sendto, msg)
     
-def getUnresolvedIncidentList(http, EndpointConfig):
-    executionStart = datetime.datetime.now()
-    response = http.request(
-        "GET",
-        f"{EndpointConfig.baseUrl}/pages/{EndpointConfig.pageId}/incidents/unresolved",
-        headers={"Authorization": f"OAuth {EndpointConfig.apiKey}"},
-        retries=EndpointConfig.connectionRetries,
-        timeout=EndpointConfig.connectionTimeout,
-    )
+def getUnresolvedIncidentList():
+
+    try:
+        response = pool.request(
+            "GET",
+            f"{config.get('StatusPage').get('api',None)}/pages/{config.get('StatusPage').get('pageids',None)}/incidents/unresolved",
+            headers={
+                "Authorization": f"OAuth {config.get('StatusPage').get('apikey')}"
+                },
+            retries=config.get('StatusPage').get('retries',3),
+            timeout=int(config.get('StatusPage').get('timeout',3))
+        )
+    except Exception as e:
+        logger.error("cannot retrieve open incidents: %s", e)
+        raise ConnectionAbortedError from e
+    
     result = json.loads(response.data.decode("utf-8"))
+    logger.debug("result = %s", result)
+    
     if not result:
-        logging.debug("no unresolved incidets")
-        raise ValueError("No unresolved incidents")
-
-    if result:
-        logging.warning("Current Unresolved Incident Count: %s", len(result))
+        logger.debug("no unresolved incidets")
+    else:
+        logger.warning("Current Unresolved Incident Count: %s", len(result))
         for i, incident in enumerate(result):
-            logging.debug("Current Incidents: %s", json.dumps(incident, indent=0))
+            logger.debug("Current Incidents: %s", json.dumps(incident, indent=0))
 
-    executionEnd = datetime.datetime.now()
-    executionDelta = (executionEnd - executionStart).total_seconds() * 1000
-    logging.debug("execution time=%.2fms", executionDelta)
     return result
 
 
-def getComponentList(http, EndpointConfig):
+def getComponentList():
     """ retrieve the list of components """
-    executionStart = datetime.datetime.now()
-    response = http.request(
+
+    response = pool.request(
         "GET",
-        f"{EndpointConfig.baseUrl}/pages/{EndpointConfig.pageId}/components",
-        headers={"Authorization": f"OAuth {EndpointConfig.apiKey}"},
-        retries=EndpointConfig.connectionRetries,
-        timeout=EndpointConfig.connectionTimeout,
+        f"{config.get('StatusPage').get('api', None)}/pages/{config.get('StatusPage').get('pageids')}/components",
+        headers={"Authorization": f"OAuth {config.get('StatusPage').get('apikey', None)}"},
+        retries=config.get('StatusPage').get('retries',3),
+        timeout=int(config.get('StatusPage').get('timeout',3))
     )
 
     details = json.loads(response.data.decode("utf-8"))
-    logging.debug("component list = %s", json.dumps(details, indent=0))
+    logger.debug("component list = %s", json.dumps(details, indent=0))
 
-    executionEnd = datetime.datetime.now()
-    executionDelta = (executionEnd - executionStart).total_seconds() * 1000
-    logging.debug("execution time=%.2fms", executionDelta)
     return details
 
 
@@ -286,44 +344,44 @@ def getComponentList(http, EndpointConfig):
 #     """ find the component detail for an incident component in the component list"""
 #     from operator import itemgetter
 
-#     logging.debug("componentList = %s", componentList)
-#     logging.debug("want component = %s", incidentComponent)
+#     logger.debug("componentList = %s", componentList)
+#     logger.debug("want component = %s", incidentComponent)
 #     res = map(itemgetter(incidentComponent), componentList)
-#     logging.debug("result = %s", res)
+#     logger.debug("result = %s", res)
 
 
 def findComponentInIncident(componentId, incidentList):
     from operator import itemgetter
 
-    logging.debug("incidentList = %s", incidentList)
-    logging.debug("want component = %s", componentId)
+    logger.debug("incidentList = %s", incidentList)
+    logger.debug("want component = %s", componentId)
     # res = itemgetter(componentId, incidentList)
     if isinstance(incidentList, list) is not True:
-        logging.debug("incident list is not type list()")
+        logger.debug("incident list is not type list()")
         x = incidentList
         incidentList = []
         for i in x:
             incidentList.append(i)
     else:
-        logging.debug("incident list is type list()")
+        logger.debug("incident list is type list()")
 
     for i, ev in enumerate(incidentList):
-        logging.debug("incident id: %s", ev)
+        logger.debug("incident id: %s", ev)
         for a, cid in enumerate(ev["components"]):
-            logging.debug("component id: %s want: %s", cid["id"], componentId)
+            logger.debug("component id: %s want: %s", cid["id"], componentId)
             if cid["id"] == componentId:
-                logging.debug("matched component id")
+                logger.debug("matched component id")
                 return ev["id"]
 
     return None
 
-    # logging.info("result = %s", res)
+    # logger.info("result = %s", res)
 
 
 def getIncidentDetails(http, EndpointConfig, incidentId):
     """ dict(incidentDetails) = getIncidentDetails(incidentId)"""
 
-    logging.debug("requesting details for incident %s", incidentId)
+    logger.debug("requesting details for incident %s", incidentId)
     response = http.request(
         "GET",
         f"{EndpointConfig.baseUrl}/pages/{EndpointConfig.pageId}/incidents/{incidentId}",
@@ -333,7 +391,7 @@ def getIncidentDetails(http, EndpointConfig, incidentId):
     )
 
     result = json.loads(response.data.decode("utf-8"))
-    logging.debug("%s", json.dumps(result, indent=0))
+    logger.debug("%s", json.dumps(result, indent=0))
     return result
 
 
@@ -352,7 +410,7 @@ def resolveIncident(**kwargs):
     http = kwargs.get("PoolManager", None)
 
     if http is None:
-        logging.critical("invalid HTTP PoolManager.")
+        logger.critical("invalid HTTP PoolManager.")
     return None
 
     incidentDefinition = {
@@ -377,7 +435,7 @@ def resolveIncident(**kwargs):
         }
     }
 
-    logging.debug("%s", json.dumps(incidentDefinition, indent=0))
+    logger.debug("%s", json.dumps(incidentDefinition, indent=0))
 
     incident = json.dumps(incidentDefinition)
     incident = str(incident)
@@ -397,22 +455,16 @@ def resolveIncident(**kwargs):
 
 def createIncident(**kwargs):
 
+    logger.debug(kwargs)
+    
     incidentName = kwargs.get("Name", "Name not Provided")
     deliverNotifications = kwargs.get("Notifications", False)
-    autoTransition = kwargs.get("AutoTransition", False)
+    autoTransition = kwargs.get("AutoTransition", True)
     incidentMessage = kwargs.get("Message", "Incident created")
     components = kwargs.get("Components", {})
     component_ids = kwargs.get("ComponentIdList", [])
     state = kwargs.get("State", None)
-    baseUrl = kwargs.get("baseUrl", None)
-    pageId = kwargs.get("pageId", None)
-    apiKey = kwargs.get("apiKey", None)
-    http = kwargs.get("PoolManager", None)
-
-    if http is None:
-        logging.critical("invalid HTTP PoolManager.")
-        return None
-
+    
     if state == "partial_outage":
         impact = "major"
     elif state == "major_outage":
@@ -443,24 +495,29 @@ def createIncident(**kwargs):
         }
     }
 
-    logging.debug("%s", json.dumps(incidentDefinition))
+    logger.debug("%s", incidentDefinition)
 
     incident = json.dumps(incidentDefinition)
     incident = str(incident)
     incident = incident.encode("utf-8")
 
-    response = http.request(
-        "POST",
-        f"{baseUrl}/pages/{pageId}/incidents",
-        body=incident,
-        headers={"Authorization": f"OAuth {apiKey}"},
-        retries=EndpointConfig.connectionRetries,
-        timeout=EndpointConfig.connectionTimeout,
-    )
+    try:
+        response = pool.request(
+            "POST",
+            f"{config.get('StatusPage').get('api', None)}/pages/{config.get('StatusPage').get('pageids')}/incidents",
+            body=incident,
+            headers={"Authorization": f"OAuth {config.get('StatusPage').get('apikey')}"},
+            retries=config.get('StatusPage').get('retries',3),
+            timeout=int(config.get('StatusPage').get('timeout',3))
+        )
+    except Exception as e:
+        logger.error("cannot create incident: %s", e)
+        
     if response.status not in (200, 201):
-        logging.warning("createIncident API response status code = %s", response.status)
+        logger.error("createIncident API response status code = %s", response.status)
+        logger.error("response: %s", json.loads(response.data.decode("utf-8")))
 
-    return response
+    return json.loads(response.data.decode("utf-8"))
 
 
 def getComponentNameFromId(componentList, componentId):
@@ -485,9 +542,9 @@ def getComponentIdFromEmail(componentList, componentEmail):
 def getIncidentComponents(incidentData):
 
     componentList = []
-    logging.debug("%s", incidentData)
+    logger.debug("%s", incidentData)
     for component in incidentData["components"]:
-        logging.debug("adding component %s", component["id"])
+        logger.debug("adding component %s", component["id"])
         componentList.append(component["id"])
 
     return componentList
@@ -498,7 +555,7 @@ def setIncidentComponentOperationalStatus(incidentData, state):
     componentList = {}
 
     for component in incidentData["components"]:
-        logging.debug("adding component %s", component["id"])
+        logger.debug("adding component %s", component["id"])
         componentList[component["id"]] = state
     return componentList
 

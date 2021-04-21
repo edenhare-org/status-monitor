@@ -15,7 +15,6 @@ logger.info("%s Module Version %s", __name__, MODULE_VERSION)
 #     counter: int
 #     timer: float
 #     time: utc_timestamp
-#     alerts: int
 #     last_alert = utc_timestamp
 #   }   
 # }
@@ -61,7 +60,6 @@ def save(**kwargs):
     
     counter = data.get('counter',5)
     timer = data.get('timer', 0)
-    alerts = data.get('alerts', 0)
     if state == "down" or state == "degraded":
         history[endpoint]['counter'] = counter + 1
     elif state == "up":
