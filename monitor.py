@@ -7,10 +7,25 @@ This module performs the work to check the configured endpoints
 # pylint: disable=W0612
 # synthetics
 import sys
+import os
 import logging
 import time
-import Check
-import CloudWatch
+try:
+    import yaml
+except Exception as error:
+    print(f"import yaml: {error}")
+    sys.exit(1)
+try:
+    import Check
+except Exception as error:
+    print(f"import Check: {error}")
+    sys.exit(1)
+try:
+    import CloudWatch
+except Exception as error:
+    print(f"import CloudwWatch: {error}")
+    sys.exit(1)
+
 # import StatusPage
 
 __version__ = "1.0.0"
@@ -28,22 +43,37 @@ logging.getLogger("CloudWatch").setLevel(logging.DEBUG)
 logging.getLogger("Check").setLevel(logging.DEBUG)
 
 try:
-    import endpoints as Endpoints
-except Exception as e:
-    logger.critical("cannot import endpoints: %s", e)
-    sys.exit(1)
+#try:
+#except Exception as e:
+#    logger.critical("cannot import endpoints: %s", e)
+#    sys.exit(1)
+
+CONFIG="endpoints.yaml"
 
 def main():
     """
     main: main processing loop
     """
     loopDelay = 300
-    connectionTimeout = float(Endpoints.connectionTimeout)
-    connectionRetries = int(Endpoints.connectionRetries)
-
+    
+    # load the endpoint config file, endpoints.yaml
+    if os.path.isfile(CONFIG) is False:
+        logger.critical("config: %s not found.", CONFIG)
+        sys.exit(2)
+    # open the file and read the contents
+    with open(CONFIG, "r") as f:
+      config = yaml.safe_load(f)
+    print(config)
+    print(config.get('apiList'))
+    
+    connectionTimeout = float(config.get('connection').get('timeout'))
+    connectionRetries = int(config.get('connection').get('retries'))
+    
     logger.info("Initializing loop")
+    #TODO: This code doesn't yet know how to send a POST with a 
+    # body and header
     while True:
-        for c, endpoint in enumerate(Endpoints.apiList):
+        for c, endpoint in enumerate(config.get('apiList')):
             event = {
                 "url": endpoint.get("url", None),
                 "method": endpoint.get("method", "GET"),
@@ -54,8 +84,17 @@ def main():
                 "headers": endpoint.get("headers", None),
                 "auth": endpoint.get("auth", None),
             }
-
+            # connect to the endpoint, well, try to
             response = Check.status(event)
+            logger.debug("endpoint response: %s expected: %s",
+                response.get('endpoint').get('status'),
+                endpoint.get('status')
+            )
+            if response.get('endpoint').get('status') != endpoint.get('status'):
+                logger.warning("endpoint response: %s expected: %s",
+                    response.get('endpoint').get('status'),
+                    endpoint.get('status')
+                )
 
             cw_response = CloudWatch.put(response)
 
@@ -70,6 +109,7 @@ def main():
             )
             # end of for
         # sleep
+        sys.exit(9)
         logger.info("pausing for %s seconds", loopDelay)
         time.sleep(loopDelay)
         # end of while
