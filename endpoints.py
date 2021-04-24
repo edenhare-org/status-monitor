@@ -1,3 +1,5 @@
+# pylint: disable=C0114
+# pylint: disable=C0103
 #
 # This file defines the parameters for the endpoints to be evaluated
 #

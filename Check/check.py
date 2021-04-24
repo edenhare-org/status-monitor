@@ -1,9 +1,32 @@
+"""
+check.py - evaluate the status of the specified endpoint.
+
+Returns:
+    dict: response dictionary
+        {
+        'statusCode': response status code,
+        'body': response status text,
+        'url': url,
+        'error': error message if any,
+        'timestamp': timestamp,
+        'endpoint': {
+            'status': endpoint status code,
+            'message': endpoint status message,
+            'time': endpoint response time
+            }
+        }
+"""
+
 # synthetics
+# pylint: disable=C0103
+# Disable Catching too general exception Exception (broad-except)
+# pylint: disable=W0703
+# Disable Access to a protected member _fp_bytes_read of a client class (protected-access)
+# pylint: disable=W0212
 import logging
-import json
-import urllib3
 import time
 import datetime
+import urllib3
 
 __version__="1.0.0"
 __author__="chris.hare@icloud.com"
@@ -13,11 +36,17 @@ logger.info("%s Module Version %s/%s", __name__, __version__, __author__)
 logger.info("urllib3 version %s", urllib3.__version__)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
+def status(event):
+    """status(event) - evaluate the status of the specified endpoint
 
-def status(event, context):
+    Args:
+        event ([dict]): dictionary with required information
 
+    Returns:
+        [dict]: response information
+    """
     e = ''
-    
+
     try:
         pool = urllib3.PoolManager()
     except Exception as e:
@@ -34,11 +63,10 @@ def status(event, context):
             'body': "url not specified"
         }
     #! The code doesn't know how to handle POST
- 
     #! The code doesn't know how to handle these yet
-    body = event.get('body', None)
-    headers = event.get('headers', None)
-    auth = event.get('auth', None)
+    # body = event.get('body', None)
+    # headers = event.get('headers', None)
+    # auth = event.get('auth', None)
 
     st = time.perf_counter()
     try:
@@ -68,13 +96,13 @@ def status(event, context):
     )
 
     if response.status >= 200 and response.status <= 299:
-        status = "2xx"
-    if response.status >= 300 and response.status <= 399:
-        status = "3xx"
-    if response.status >= 400 and response.status <= 499:
-        status = "4xx"
-    if response.status >= 500 and response.status <= 599:
-        status = "5xx"
+        statusMessage = "2xx"
+    elif response.status >= 300 and response.status <= 399:
+        statusMessage = "3xx"
+    elif response.status >= 400 and response.status <= 499:
+        statusMessage = "4xx"
+    elif response.status >= 500 and response.status <= 599:
+        statusMessage = "5xx"
     endpointStatus = response.status
 
     ts = datetime.datetime.timestamp(datetime.datetime.now())
@@ -87,8 +115,8 @@ def status(event, context):
         'timestamp': ts,
         'endpoint': {
             'status': endpointStatus,
-            'message': status,
+            'message': statusMessage,
             'time': responseTime
         }
     }
-
+# end

@@ -1,8 +1,13 @@
+"""
+metrics.py - publish cloudwatch maetrics
+"""
 # synthetics
-import os
+# Disable Variable name doesn't conform to snake_case naming style (invalid-name)
+# pylint: disable=C0103
+# Disable Catching too general exception Exception (broad-except)
+# pylint: disable=W0703
+
 import logging
-import json
-import botocore
 import boto3
 
 __version__="1.0.0"
@@ -14,11 +19,19 @@ logger.info("boto3 version %s", boto3.__version__)
 logging.getLogger('botocore').setLevel(logging.WARNING)
 logging.getLogger('boto3').setLevel(logging.WARNING)
 
-def put(event, context):
+def put(event):
+    """
+    put - public a cloudwatch metric
 
+    Args:
+        event (dict): required information to publish the metric
+
+    Returns:
+        dict: the response with the publish results
+    """
     e = ''
     namespace = 'Synthetics'
-        
+
     try:
         client = boto3.client("cloudwatch")
     except Exception as e:
@@ -92,9 +105,4 @@ def put(event, context):
             'time': event.get('endpoint').get('time')
         }
     }
-
-
-if __name__ == "__main__":
-    response = handler({}, "")
-    print(json.dumps(response, indent=2))
-
+# end
