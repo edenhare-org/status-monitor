@@ -48,6 +48,11 @@ def status(event):
     e = ''
 
     try:
+        logger.setLevel(event.get('loglevel'))
+        logging.getLogger('urllib3').setLevel(event.get('loglevel'))
+    except:
+        pass
+    try:
         pool = urllib3.PoolManager()
     except Exception as e:
         logger.critical("cannot create http pool manager: %s", e)
