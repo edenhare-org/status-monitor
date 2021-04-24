@@ -19,7 +19,7 @@ logger.info("boto3 version %s", boto3.__version__)
 logging.getLogger('botocore').setLevel(logging.WARNING)
 logging.getLogger('boto3').setLevel(logging.WARNING)
 
-def put(event):
+def put(**kwargs):
     """
     put - public a cloudwatch metric
 
@@ -30,17 +30,18 @@ def put(event):
         dict: the response with the publish results
     """
     e = ''
-    namespace = 'Synthetics'
+    event = kwargs.get('Data', None)
+    namespace = kwargs.get('Namespace','Synthetics')
 
+    if event.get('url', None) is None:
+        logger.error('no url in argument list')
+        return {'statusCode': 500, 'error': "no url in argument list"}
+        
     try:
         client = boto3.client("cloudwatch")
     except Exception as e:
         logger.critical("cannot create cloudwatch client: %s", e)
         return {'statusCode': 500, 'error': "Cannot create Cloudwatch client"}
-
-    if event.get('url', None) is None:
-        logger.error('no url in argument list')
-        return {'statusCode': 500, 'error': "no url in argument list"}
 
     if event.get('endpoint').get('time', 0) == 0:
         logger.warning('%s: response time = 0', event.get('url', None))
