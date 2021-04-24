@@ -25,7 +25,11 @@ try:
 except Exception as error:
     print(f"import CloudwWatch: {error}")
     sys.exit(1)
-
+try:
+    import StatusPage
+except Exception as error:
+    print(f"import StatusPage: {error}")
+    sys.exit(1)
 # import StatusPage
 
 __version__ = "1.0.0"
@@ -95,6 +99,8 @@ def main():
                     response.get('endpoint').get('status'),
                     endpoint.get('status')
                 )
+            if response.get('endpoint').get('status') == endpoint.get('status'):
+                StatusPage.status(Status="operational")
 
             cw_response = CloudWatch.put(
                 Namespace= config.get('cloudwatch').get('namespace',None),

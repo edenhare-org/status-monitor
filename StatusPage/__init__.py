@@ -1,2 +1,2 @@
-from .getComponentList import getComponentList
+from .send import status
 
