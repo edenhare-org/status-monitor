@@ -42,8 +42,8 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("CloudWatch").setLevel(logging.DEBUG)
 logging.getLogger("Check").setLevel(logging.DEBUG)
 
-try:
 #try:
+#    import endpoints as Endpoints
 #except Exception as e:
 #    logger.critical("cannot import endpoints: %s", e)
 #    sys.exit(1)
