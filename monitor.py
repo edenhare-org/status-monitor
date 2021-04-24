@@ -96,7 +96,10 @@ def main():
                     endpoint.get('status')
                 )
 
-            cw_response = CloudWatch.put(response)
+            cw_response = CloudWatch.put(
+                Namespace= config.get('cloudwatch').get('namespace',None),
+                Data=response
+            )
 
             logger.info(
                 "endpoint: %s status: %s(%s) time: %s ms metrics: %s(%s)",
@@ -109,9 +112,9 @@ def main():
             )
             # end of for
         # sleep
+        logger.info("pausing for %s seconds", config.get('monitor').get('delay', 60))
         sys.exit(9)
-        logger.info("pausing for %s seconds", loopDelay)
-        time.sleep(loopDelay)
+        time.sleep(config.get('monitor').get('delay', 60))
         # end of while
     # end of def
 
