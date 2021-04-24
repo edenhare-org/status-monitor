@@ -1,3 +1,6 @@
+monitor:
+    delay: 300
+
 connection:
     retries: 1
     # How long do we wait for a response, in SECONDS
@@ -11,7 +14,7 @@ statuspage:
     pageId: 
     baseUrl: "https://api.statuspage.io/v1"
     
-cloudwatchmetrics:
+cloudwatch:
     namespace: Synthetics
 
 apiList:
