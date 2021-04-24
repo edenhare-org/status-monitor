@@ -1,0 +1,26 @@
+connection:
+    retries: 1
+    # How long do we wait for a response, in SECONDS
+    timeout: 2.0
+    downThreshold: 5
+    degradedThreshold: 5
+
+statuspage:
+    # Statuspage.io
+    apiKey: 
+    pageId: 
+    baseUrl: "https://api.statuspage.io/v1"
+    
+cloudwatchmetrics:
+    namespace: Synthetics
+
+apiList:
+    - name: "LabR Website"
+      url: "http://www.labr.net"
+      method: "GET"
+      status: 200
+      timeout: 1000
+      # change the log level only for this connection
+      loglevel: DEBUG
+      componentid: 
+
