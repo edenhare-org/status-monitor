@@ -94,6 +94,10 @@ def main():
                 response.get('endpoint').get('status'),
                 endpoint.get('status')
             )
+            # if the endpoint response is not what we are expecting, 
+            #    log a warning
+            #    send the major_outage notification to statuspage if configured
+            #
             if response.get('endpoint').get('status') != endpoint.get('status'):
                 logger.warning("endpoint response: %s expected: %s",
                     response.get('endpoint').get('status'),
@@ -102,10 +106,17 @@ def main():
             if response.get('endpoint').get('status') == endpoint.get('status'):
                 StatusPage.status(Status="operational")
 
-            cw_response = CloudWatch.put(
-                Namespace= config.get('cloudwatch').get('namespace',None),
-                Data=response
-            )
+            if config.get('cloudwatch').get('namespace',None) is not None:
+                try:
+                    cw_response = CloudWatch.put(
+                        Namespace = config.get('cloudwatch').get('namespace',None),
+                        Data=response
+                    )
+                except AttributeError as e:
+                    logger.error('failed to write cloudwatch metrics: %s', e)
+            else:
+                logger.warning("cloudwatch metrics disabled by configuration")
+                cw_response = {}
 
             logger.info(
                 "endpoint: %s status: %s(%s) time: %s ms metrics: %s(%s)",
@@ -113,8 +124,8 @@ def main():
                 response.get("endpoint").get("message"),
                 response.get("endpoint").get("status"),
                 response.get("endpoint").get("time"),
-                cw_response.get("body"),
-                cw_response.get("statusCode"),
+                cw_response.get("body", None),
+                cw_response.get("statusCode", None),
             )
             # end of for
         # sleep
