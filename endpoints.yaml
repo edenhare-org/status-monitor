@@ -15,7 +15,7 @@ statuspage:
     baseUrl: "https://api.statuspage.io/v1"
     
 cloudwatch:
-    namespace: Synthetics
+    namespace: # Synthetics
 
 apiList:
     - name: "LabR Website"
