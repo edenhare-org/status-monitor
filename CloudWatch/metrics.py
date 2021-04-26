@@ -31,11 +31,15 @@ def put(**kwargs):
     """
     e = ''
     event = kwargs.get('Data', None)
-    namespace = kwargs.get('Namespace','Synthetics')
+    namespace = kwargs.get('Namespace', None)
 
     if event.get('url', None) is None:
+        raise AttributeError ('no url in argument list')
         logger.error('no url in argument list')
         return {'statusCode': 500, 'error': "no url in argument list"}
+    
+    if namespace is None:
+        raise AttributeError ('no namespace provided in argument list')
         
     try:
         client = boto3.client("cloudwatch")
