@@ -55,7 +55,9 @@ def status(event):
     try:
         pool = urllib3.PoolManager()
     except Exception as e:
+
         logger.critical("cannot create http pool manager: %s", e)
+        raise CreatePoolManagerFailure (e)
         return {
             'statusCode': 500,
             'body': "Cannot create http pool manager"
@@ -63,6 +65,7 @@ def status(event):
 
     if event.get('url', None) is None:
         logger.error("url not specified")
+        raise RequestError ("url not specified")
         return {
             'statusCode': 500,
             'body': "url not specified"
@@ -83,6 +86,7 @@ def status(event):
         )
     except Exception as e:
         logger.error("error=%s", e)
+        raise HttpRequestError(e)
         return {
             'statusCode': 500,
             'body': f"Request to {event.get('url', None)} failed: {e}",
@@ -124,4 +128,6 @@ def status(event):
             'time': responseTime
         }
     }
+    
+
 # end
