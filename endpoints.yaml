@@ -1,29 +1,53 @@
+# set the applicton configuration
 monitor:
-    delay: 300
+  # how long to delay between connection attempts.  See this 
+  # value to 0 (zero) to evaluate the endpoints once.  This is 
+  # one way to use the same code for AWS Lambda or as a service
+  # in AWS Elastic Container Service.
+  delay: 300
 
 connection:
-    retries: 1
-    # How long do we wait for a response, in SECONDS
-    timeout: 2.0
-    downThreshold: 5
-    degradedThreshold: 5
-
+  # This section sets the urllib3 request configuration.
+  retries: 1
+  # How long do we wait for a response, in SECONDS
+  timeout: 2.0
+    
 statuspage:
-    # Statuspage.io
-    apiKey: 
-    pageId: 
-    baseUrl: "https://api.statuspage.io/v1"
+  # Statuspage.io
+  apiKey: INSERT your Status{age API key here
+  # This example assumes you only have one page in your StatusPage
+  # account. If you have multiple pages, like a public ad a private
+  # page, adding the componentid and the pageid to the api/endpoint
+  # section would be a good idea.
+  pageId: INSERT your StatusPage pageId here.
+  # URL for the API endpoint
+  baseUrl: "https://api.statuspage.io/v1"
+  # how many sequential failures before we conclude the endpoint is
+  # offline
+  downThreshold: 5
+  # how many sequential reauests with a valid response which is
+  # greaster than the target response time before we send a 
+  # degraded_performance status
+  degradedThreshold: 5
     
 cloudwatch:
-    namespace: # Synthetics
+  # Set this value to save the metrics to Cloudwatch.  If this
+  # value is null, then no metrics are saved to CloudWatch metrics.
+  namespace: # Synthetics
 
 apiList:
-    - name: "LabR Website"
-      url: "http://www.labr.net"
-      method: "GET"
-      status: 200
-      timeout: 1000
-      # change the log level only for this connection
-      loglevel: DEBUG
-      componentid: 
+  # This is a list of the endpoints/APIs we want to test.
+  - name: "LabR Website"
+    url: "http://www.labr.net"
+    method: "GET"
+    # the expected response code
+    status: 200
+    # The time we expected a res
+    timeout: 1000
+    # change the log level only for this connection
+    loglevel: DEBUG
+    # StatusPage component id.  This is used to update the operational
+    # status usinjg the API or through email automation by using the 
+    # API to look up the component email.
+    componentid: 
 
