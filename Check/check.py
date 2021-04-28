@@ -21,20 +21,25 @@ Returns:
 # pylint: disable=C0103
 # Disable Catching too general exception Exception (broad-except)
 # pylint: disable=W0703
-# Disable Access to a protected member _fp_bytes_read of a client class (protected-access)
+# Disable Access to a protected member
 # pylint: disable=W0212
 import logging
 import time
 import datetime
 import urllib3
+from .exceptions import Error
+from .exceptions import CreatePoolManagerFailure
+from .exceptions import RequestError
+from .exceptions import HttpRequestError
 
-__version__="1.0.0"
-__author__="chris.hare@icloud.com"
+__version__ = "1.4.0"
+__author__ = "chris.hare@icloud.com"
 logger = logging.getLogger(__name__)
 logger.setLevel('INFO')
 logger.info("%s Module Version %s/%s", __name__, __version__, __author__)
 logger.info("urllib3 version %s", urllib3.__version__)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
+
 
 def status(event):
     """status(event) - evaluate the status of the specified endpoint
@@ -55,26 +60,13 @@ def status(event):
     try:
         pool = urllib3.PoolManager()
     except Exception as e:
-
-        logger.critical("cannot create http pool manager: %s", e)
-        raise CreatePoolManagerFailure (e)
-        return {
-            'statusCode': 500,
-            'body': "Cannot create http pool manager"
-        }
+        raise CreatePoolManagerFailure(e)
 
     if event.get('url', None) is None:
-        logger.error("url not specified")
-        raise RequestError ("url not specified")
-        return {
-            'statusCode': 500,
-            'body': "url not specified"
-        }
-    #! The code doesn't know how to handle POST
-    #! The code doesn't know how to handle these yet
-    # body = event.get('body', None)
-    # headers = event.get('headers', None)
-    # auth = event.get('auth', None)
+        raise AttributeError("url not specified")
+
+    # The code doesn't know how to handle POST
+    # The code doesn't know how to handle these yet
 
     st = time.perf_counter()
     try:
@@ -82,27 +74,16 @@ def status(event):
             event.get('method', 'GET'),
             event.get('url', None),
             retries=int(event.get('retries', 3)),
-            timeout=float(event.get('timeout', 3))
-        )
+            timeout=float(event.get('timeout', 3)))
     except Exception as e:
-        logger.error("error=%s", e)
         raise HttpRequestError(e)
-        return {
-            'statusCode': 500,
-            'body': f"Request to {event.get('url', None)} failed: {e}",
-            'url': event.get('url', None),
-            'error': e
-        }
+
     responseTime = (time.perf_counter() - st) * 1000
 
-    logger.debug(
-        "checking endpoint: %s:%s status=%s bytes=%s time=%.3fms",
-        event.get('method', 'GET'),
-        event.get('url', None),
-        response.status,
-        response._fp_bytes_read,
-        responseTime
-    )
+    logger.debug("checking endpoint: %s:%s status=%s bytes=%s time=%.3fms",
+                 event.get('method', 'GET'),
+                 event.get('url', None), response.status,
+                 response._fp_bytes_read, responseTime)
 
     if response.status >= 200 and response.status <= 299:
         statusMessage = "2xx"
@@ -128,6 +109,7 @@ def status(event):
             'time': responseTime
         }
     }
-    
+
 
 # end
+
