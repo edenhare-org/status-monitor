@@ -38,7 +38,8 @@ logger = logging.getLogger()
 logger.setLevel("INFO")
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s %(levelname)-8s %(module)s.%(funcName)s.%(lineno)d %(message)s",
+    format=
+    "%(asctime)s %(levelname)-8s %(module)s.%(funcName)s.%(lineno)d %(message)s",
 )
 logger.propagate = True
 logger.info("%s Module Version %s/%s", __name__, __version__, __author__)
@@ -46,35 +47,27 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("CloudWatch").setLevel(logging.DEBUG)
 logging.getLogger("Check").setLevel(logging.DEBUG)
 
-#try:
-#    import endpoints as Endpoints
-#except Exception as e:
-#    logger.critical("cannot import endpoints: %s", e)
-#    sys.exit(1)
+CONFIG = "endpoints.yaml"
 
-CONFIG="endpoints.yaml"
 
 def main():
     """
     main: main processing loop
     """
-    loopDelay = 300
-    
+
     # load the endpoint config file, endpoints.yaml
     if os.path.isfile(CONFIG) is False:
         logger.critical("config: %s not found.", CONFIG)
         sys.exit(2)
     # open the file and read the contents
     with open(CONFIG, "r") as f:
-      config = yaml.safe_load(f)
-    print(config)
-    print(config.get('apiList'))
-    
+        config = yaml.safe_load(f)
+
     connectionTimeout = float(config.get('connection').get('timeout'))
     connectionRetries = int(config.get('connection').get('retries'))
-    
+
     logger.info("Initializing loop")
-    #TODO: This code doesn't yet know how to send a POST with a 
+    # TODO: This code doesn't yet know how to send a POST with a 
     # body and header
     while True:
         for c, endpoint in enumerate(config.get('apiList')):
@@ -87,31 +80,35 @@ def main():
                 "body": endpoint.get("body", None),
                 "headers": endpoint.get("headers", None),
                 "auth": endpoint.get("auth", None),
+                "componentid": endpoint.get("componentid", None),
+                "pageid": config.get("statuspage").get("pageId", None),
+                "baseUrl": config.get("statuspage").get("baseUrl", None),
+                "apikey": config.get("statuspage").get("apiKey", None),
             }
             # connect to the endpoint, well, try to
             response = Check.status(event)
             logger.debug("endpoint response: %s expected: %s",
-                response.get('endpoint').get('status'),
-                endpoint.get('status')
-            )
+                         response.get('endpoint').get('status'),
+                         endpoint.get('status'))
             # if the endpoint response is not what we are expecting, 
             #    log a warning
             #    send the major_outage notification to statuspage if configured
             #
             if response.get('endpoint').get('status') != endpoint.get('status'):
                 logger.warning("endpoint response: %s expected: %s",
-                    response.get('endpoint').get('status'),
-                    endpoint.get('status')
-                )
-            if response.get('endpoint').get('status') == endpoint.get('status'):
-                StatusPage.status(Status="operational")
+                               response.get('endpoint').get('status'),
+                               endpoint.get('status'))
+            if response.get('endpoint').get('status') == endpoint.get(
+                    'status'):
+                event['status'] = "operational"
+                StatusPage.status(event)
 
-            if config.get('cloudwatch').get('namespace',None) is not None:
+            if config.get('cloudwatch').get('namespace', None) is not None:
                 try:
                     cw_response = CloudWatch.put(
-                        Namespace = config.get('cloudwatch').get('namespace',None),
-                        Data=response
-                    )
+                        Namespace=config.get('cloudwatch').get(
+                            'namespace', None),
+                        Data=response)
                 except AttributeError as e:
                     logger.error('failed to write cloudwatch metrics: %s', e)
             else:
@@ -125,11 +122,15 @@ def main():
                 response.get("endpoint").get("status"),
                 response.get("endpoint").get("time"),
                 cw_response.get("body", None),
-                cw_response.get("statusCode", None),
-            )
+                cw_response.get("statusCode", None), )
             # end of for
         # sleep
-        logger.info("pausing for %s seconds", config.get('monitor').get('delay', 60))
+        if config.get('monitor').get('delay') == 0:
+            logger.info("execution complete")
+            return {'status': 200, 'body': 'executin complete'}
+
+        logger.info("pausing for %s seconds",
+                    config.get('monitor').get('delay', 60))
         sys.exit(9)
         time.sleep(config.get('monitor').get('delay', 60))
         # end of while
@@ -138,3 +139,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
