@@ -34,8 +34,9 @@ except Exception as error:
     sys.exit(1)
 # import StatusPage
 
-__version__ = "1.0.0"
-__author__ = "chris.hare@icloud.com"
+__version__ = "1.0.22"
+__author__ = "labrlearning.medium.com"
+__copyright__ = "(C) 2021 Chris Hare"
 logger = logging.getLogger()
 logger.setLevel("INFO")
 logging.basicConfig(
@@ -165,6 +166,16 @@ if __name__ == "__main__":
         default="endpoints.yaml", 
         type="string",
         help="specify the configuration YAML file")
+    
+    parser.add_option("-l", "--log", 
+        dest="logfile",
+        type="string",
+        help="specify the local log file.  If not specified, it is disabled.")
+
+    parser.add_option("-v", "--version", 
+        dest="version",
+        action="store_true",
+        help="print version information")    
 
     # args should be empty because only options are used
     (options, args) = parser.parse_args()
@@ -172,14 +183,22 @@ if __name__ == "__main__":
     # add addtional options
     CONFIG = options.CONFIG
 
-    # Configure the log file
-    lhStdout = logger.handlers[0]  # stdout is the only handler initially
-    fh = logging.FileHandler('monitor.log')
-    formatter=logging.Formatter("%(asctime)s %(levelname)-8s %(module)s.%(funcName)s.%(lineno)d %(message)s")
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
-    logger.removeHandler(lhStdout)
-    logger.propogate = False
+    if options.version is True:
+        click.secho(f"{os.path.basename(sys.argv[0])} Version {__version__}/{__author__}", fg='yellow')
+        click.secho(f"{__copyright__}", fg='yellow')
+        sys.exit(0)
+
+    # if no log file is specified, then don't enable the log 
+    # file handler and don't disable the console log
+    if options.logfile is not None:
+        # Configure the log file
+        lhStdout = logger.handlers[0]  # stdout is the only handler initially
+        fh = logging.FileHandler('monitor.log')
+        formatter=logging.Formatter("%(asctime)s %(levelname)-8s %(module)s.%(funcName)s.%(lineno)d %(message)s")
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+        logger.removeHandler(lhStdout)
+        logger.propogate = False
     
     try:
         main()
