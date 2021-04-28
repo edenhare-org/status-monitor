@@ -4,7 +4,7 @@ monitor:
   # value to 0 (zero) to evaluate the endpoints once.  This is 
   # one way to use the same code for AWS Lambda or as a service
   # in AWS Elastic Container Service.
-  delay: 0
+  delay: 60
 
 connection:
   # This section sets the urllib3 request configuration.
