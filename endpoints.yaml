@@ -4,7 +4,7 @@ monitor:
   # value to 0 (zero) to evaluate the endpoints once.  This is 
   # one way to use the same code for AWS Lambda or as a service
   # in AWS Elastic Container Service.
-  delay: 300
+  delay: 0
 
 connection:
   # This section sets the urllib3 request configuration.
@@ -14,12 +14,12 @@ connection:
     
 statuspage:
   # Statuspage.io
-  apiKey: INSERT your Status{age API key here
+  apiKey: 98940f25-5813-41f2-bce6-cfdcbfd251dc
   # This example assumes you only have one page in your StatusPage
   # account. If you have multiple pages, like a public ad a private
   # page, adding the componentid and the pageid to the api/endpoint
   # section would be a good idea.
-  pageId: INSERT your StatusPage pageId here.
+  pageId: j0wsqcqrh6y4
   # URL for the API endpoint
   baseUrl: "https://api.statuspage.io/v1"
   # how many sequential failures before we conclude the endpoint is
@@ -49,5 +49,5 @@ apiList:
     # StatusPage component id.  This is used to update the operational
     # status usinjg the API or through email automation by using the 
     # API to look up the component email.
-    componentid: 
+    componentid: w8c45zcrwhh4
 
