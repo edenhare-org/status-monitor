@@ -44,12 +44,6 @@ logging.basicConfig(
     "%(asctime)s %(levelname)-8s %(module)s.%(funcName)s.%(lineno)d %(message)s",
 )
 
-logger.info("%s Module Version %s/%s", __name__, __version__, __author__)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("CloudWatch").setLevel(logging.WARNING)
-logging.getLogger("Check").setLevel(logging.WARNING)
-logging.getLogger("StatusPage").setLevel(logging.WARNING)
-
 CONFIG = "endpoints.yaml"
 
 
@@ -179,10 +173,13 @@ if __name__ == "__main__":
     CONFIG = options.CONFIG
 
     # Configure the log file
+    lhStdout = logger.handlers[0]  # stdout is the only handler initially
     fh = logging.FileHandler('monitor.log')
-    formatter="%(asctime)s %(levelname)-8s %(module)s.%(funcName)s.%(lineno)d %(message)s"
-    fh.formatter = formatter
+    formatter=logging.Formatter("%(asctime)s %(levelname)-8s %(module)s.%(funcName)s.%(lineno)d %(message)s")
+    fh.setFormatter(formatter)
     logger.addHandler(fh)
+    logger.removeHandler(lhStdout)
+    logger.propogate = False
     
     try:
         main()
