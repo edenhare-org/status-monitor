@@ -15,7 +15,7 @@ else:
 __version__ = "1.2.0"
 __author__ = "chris.hare@icloud.com"
 logger = logging.getLogger(__name__)
-logger.setLevel('DEBUG')
+logger.setLevel('INFO')
 logger.info("%s Module Version %s/%s", __name__, __version__, __author__)
 
 statusNames = ("operational", "under_maintenance", "degraded_performance",
