@@ -10,6 +10,8 @@ import sys
 import os
 import logging
 import time
+
+
 try:
     import yaml
 except Exception as error:
@@ -44,8 +46,9 @@ logging.basicConfig(
 logger.propagate = True
 logger.info("%s Module Version %s/%s", __name__, __version__, __author__)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("CloudWatch").setLevel(logging.DEBUG)
-logging.getLogger("Check").setLevel(logging.DEBUG)
+logging.getLogger("CloudWatch").setLevel(logging.WARNING)
+logging.getLogger("Check").setLevel(logging.WARNING)
+logging.getLogger("StatusPage").setLevel(logging.WARNING)
 
 CONFIG = "endpoints.yaml"
 
@@ -55,10 +58,16 @@ def main():
     main: main processing loop
     """
 
+    logger.info("%s Module Version %s/%s", __name__, __version__, __author__)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("CloudWatch").setLevel(logging.WARNING)
+    logging.getLogger("Check").setLevel(logging.WARNING)
+    logging.getLogger("StatusPage").setLevel(logging.WARNING)
+
     # load the endpoint config file, endpoints.yaml
     if os.path.isfile(CONFIG) is False:
         logger.critical("config: %s not found.", CONFIG)
-        sys.exit(2)
+        raise FileNotFoundError
     # open the file and read the contents
     with open(CONFIG, "r") as f:
         config = yaml.safe_load(f)
@@ -115,6 +124,18 @@ def main():
                 logger.warning("cloudwatch metrics disabled by configuration")
                 cw_response = {}
 
+            if __name__ == "__main__":
+                click.secho(
+                    (
+                    f"endpoint: {response.get('url')} " 
+                    f"status: {response.get('endpoint').get('message')} "
+                    f"({response.get('endpoint').get('status')}) "
+                    f"time: {response.get('endpoint').get('time'):.2f}ms "
+                    f"metrics: {cw_response.get('body', 'disabled')} "
+                    f"{cw_response.get('statusCode', '')}"
+                    ),
+                    fg='cyan')
+                
             logger.info(
                 "endpoint: %s status: %s(%s) time: %s ms metrics: %s(%s)",
                 response.get("url"),
@@ -138,5 +159,32 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    
+    import optparse
+    import click
+    
+    optionList = {}
+    parser = optparse.OptionParser("usage: %prog [options] arg1 arg2")
+    
+    parser.add_option("-f", "--file", 
+        dest="CONFIG",
+        default="endpoints.yaml", 
+        type="string",
+        help="specify the configuration YAML file")
+
+    # args should be empty because only options are used
+    (options, args) = parser.parse_args()
+    logger.debug("options = %s", options)
+    # add addtional options
+    CONFIG = options.CONFIG
+
+    # Configure the log file
+    fh = logging.FileHandler('monitor.log')
+    logger.addHandler(fh)
+    
+    try:
+        main()
+    except FileNotFoundError:
+        click.secho(f"The provided configuration file '{options.CONFIG}' does not exit.", fg='red')
+        sys.exit(1)
 
