@@ -61,6 +61,7 @@ def main(**kwargs):
 
     print(kwargs)
     configFile = kwargs.get('ConfigFile', "endpoints.yaml")
+    runonce = kwargs.get('Loop', False)
 
     if configFile is None:
         configFile = "endpoints.yaml"
@@ -151,9 +152,9 @@ def main(**kwargs):
                 cw_response.get("statusCode", None), )
             # end of for
         # sleep
-        if config.get('monitor').get('delay') == 0:
+        if config.get('monitor').get('delay') == 0 or runonce is True:
             logger.info("execution complete")
-            return {'status': 200, 'body': 'executin complete'}
+            return {'status': 200, 'body': 'execution complete'}
 
         logger.info("pausing for %s seconds",
                     config.get('monitor').get('delay', 60))
@@ -186,6 +187,12 @@ if __name__ == "__main__":
         dest="version",
         action="store_true",
         help="print version information")    
+    
+    parser.add_option("-r", "--runonce", 
+        dest="runonce",
+        default="store_false",
+        action="store_true",
+        help="evaluate all of the endpoints once and exit")    
 
     # args should be empty because only options are used
     (options, args) = parser.parse_args()
@@ -211,7 +218,7 @@ if __name__ == "__main__":
         logger.propogate = False
     
     try:
-        main(ConfigFile=options.config)
+        main(ConfigFile=options.config, Loop=options.runonce)
     except FileNotFoundError:
         click.secho(f"The provided configuration file '{options.config}' does not exit.", fg='red')
         sys.exit(1)
