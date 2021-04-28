@@ -2,22 +2,27 @@
 metrics.py - publish cloudwatch maetrics
 """
 # synthetics
-# Disable Variable name doesn't conform to snake_case naming style (invalid-name)
+# Disable conform to snake_case naming style
 # pylint: disable=C0103
 # Disable Catching too general exception Exception (broad-except)
 # pylint: disable=W0703
 
 import logging
 import boto3
+from .exceptions import Error
+from .exceptions import CreatePoolManagerFailure
+from .exceptions import RequestError
+from .exceptions import MetricsPushFailure
 
-__version__="1.0.0"
-__author__="chris.hare@icloud.com"
+__version__ = "1.2.0"
+__author__ = "chris.hare@icloud.com"
 logger = logging.getLogger(__name__)
 logger.setLevel('INFO')
 logger.info("%s Module Version %s/%s", __name__, __version__, __author__)
 logger.info("boto3 version %s", boto3.__version__)
 logging.getLogger('botocore').setLevel(logging.WARNING)
 logging.getLogger('boto3').setLevel(logging.WARNING)
+
 
 def put(**kwargs):
     """
@@ -34,18 +39,15 @@ def put(**kwargs):
     namespace = kwargs.get('Namespace', None)
 
     if event.get('url', None) is None:
-        raise AttributeError ('no url in argument list')
-        logger.error('no url in argument list')
-        return {'statusCode': 500, 'error': "no url in argument list"}
-    
+        raise AttributeError('no url in argument list')
+
     if namespace is None:
-        raise AttributeError ('no namespace provided in argument list')
-        
+        raise AttributeError('no namespace provided in argument list')
+
     try:
         client = boto3.client("cloudwatch")
     except Exception as e:
-        logger.critical("cannot create cloudwatch client: %s", e)
-        return {'statusCode': 500, 'error': "Cannot create Cloudwatch client"}
+        raise CreatePoolManagerFailure(e)
 
     if event.get('endpoint').get('time', 0) == 0:
         logger.warning('%s: response time = 0', event.get('url', None))
@@ -73,12 +75,10 @@ def put(**kwargs):
                 {
                     "MetricName":
                     event.get('endpoint').get('message', "Unknown"),
-                    "Dimensions": [
-                        {
-                            "Name": "EndPoint",
-                            "Value": event.get('url', None)
-                        }
-                    ],
+                    "Dimensions": [{
+                        "Name": "EndPoint",
+                        "Value": event.get('url', None)
+                    }],
                     "Timestamp":
                     event.get('timestamp', None),
                     "Value":
@@ -88,13 +88,7 @@ def put(**kwargs):
                 },
             ], )
     except Exception as e:
-        logger.error("Error posting cloudwatch metric: %s", e)
-        return {
-            'statusCode': 500,
-            'body': f"Cannot post to CloudWatch metrics: {e}",
-            'url': event.get('url', None),
-            'error': e
-        }
+        raise MetricsPushFailure(e)
 
     logger.debug("response = %s", response)
 
@@ -110,4 +104,7 @@ def put(**kwargs):
             'time': event.get('endpoint').get('time')
         }
     }
+
+
 # end
+
