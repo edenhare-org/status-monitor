@@ -36,8 +36,6 @@ __version__ = "1.4.0"
 __author__ = "chris.hare@icloud.com"
 logger = logging.getLogger(__name__)
 logger.setLevel('INFO')
-logger.info("%s Module Version %s/%s", __name__, __version__, __author__)
-logger.info("urllib3 version %s", urllib3.__version__)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 
@@ -96,7 +94,9 @@ def status(event):
     endpointStatus = response.status
 
     ts = datetime.datetime.timestamp(datetime.datetime.now())
-
+    
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+    
     return {
         'statusCode': 200,
         'body': "OK",

@@ -18,8 +18,6 @@ __version__ = "1.2.0"
 __author__ = "chris.hare@icloud.com"
 logger = logging.getLogger(__name__)
 logger.setLevel('INFO')
-logger.info("%s Module Version %s/%s", __name__, __version__, __author__)
-logger.info("boto3 version %s", boto3.__version__)
 logging.getLogger('botocore').setLevel(logging.WARNING)
 logging.getLogger('boto3').setLevel(logging.WARNING)
 
