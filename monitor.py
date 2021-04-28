@@ -45,10 +45,10 @@ logging.basicConfig(
     "%(asctime)s %(levelname)-8s %(module)s.%(funcName)s.%(lineno)d %(message)s",
 )
 
-CONFIG = "endpoints.yaml"
+#CONFIG = "endpoints.yaml"
 
 
-def main():
+def main(**kwargs):
     """
     main: main processing loop
     """
@@ -59,12 +59,19 @@ def main():
     logging.getLogger("Check").setLevel(logging.WARNING)
     logging.getLogger("StatusPage").setLevel(logging.WARNING)
 
+    print(kwargs)
+    configFile = kwargs.get('ConfigFile', "endpoints.yaml")
+
+    if configFile is None:
+        configFile = "endpoints.yaml"
+    print(configFile)
     # load the endpoint config file, endpoints.yaml
-    if os.path.isfile(CONFIG) is False:
-        logger.critical("config: %s not found.", CONFIG)
+    
+    if os.path.isfile(configFile) is False:
+        logger.critical("config: %s not found.", configFile)
         raise FileNotFoundError
     # open the file and read the contents
-    with open(CONFIG, "r") as f:
+    with open(configFile, "r") as f:
         config = yaml.safe_load(f)
 
     connectionTimeout = float(config.get('connection').get('timeout'))
@@ -105,7 +112,10 @@ def main():
             if response.get('endpoint').get('status') == endpoint.get(
                     'status'):
                 event['status'] = "operational"
-                StatusPage.status(event)
+                try:
+                    StatusPage.status(event)
+                except Exception as e:
+                    logger.error(e)
 
             if config.get('cloudwatch').get('namespace', None) is not None:
                 try:
@@ -162,8 +172,8 @@ if __name__ == "__main__":
     parser = optparse.OptionParser("usage: %prog [options] arg1 arg2")
     
     parser.add_option("-f", "--file", 
-        dest="CONFIG",
-        default="endpoints.yaml", 
+        dest="config",
+        default="endpoints.yaml",
         type="string",
         help="specify the configuration YAML file")
     
@@ -181,7 +191,7 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
     logger.debug("options = %s", options)
     # add addtional options
-    CONFIG = options.CONFIG
+    # CONFIG = options.CONFIG
 
     if options.version is True:
         click.secho(f"{os.path.basename(sys.argv[0])} Version {__version__}/{__author__}", fg='yellow')
@@ -201,9 +211,9 @@ if __name__ == "__main__":
         logger.propogate = False
     
     try:
-        main()
+        main(ConfigFile=options.config)
     except FileNotFoundError:
-        click.secho(f"The provided configuration file '{options.CONFIG}' does not exit.", fg='red')
+        click.secho(f"The provided configuration file '{options.config}' does not exit.", fg='red')
         sys.exit(1)
         
     click.secho("execution complete.", fg='green')
