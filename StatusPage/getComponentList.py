@@ -22,28 +22,15 @@ def getComponentList(**kwargs):
     timeout = kwargs.get('Timeout', 3)
 
     if baseUrl is None:
-        logger.error("no API url was provided.")
-        return {
-            'statusCode': 400,
-            'body': "ERROR",
-            'error': "no api url was provided.",
-        } 
+        raise RequestError ("no API url was provided")
+
     if pageids is None:
-        logger.error("No page ids were provided.")
-        return {
-            'statusCode': 400,
-            'body': "ERROR",
-            'error': "no pageids we provided.",
-        }
+        raise RequestError ("no pageid was provided")
     
     try:
         pool = urllib3.PoolManager()
     except Exception as e:
-        logger.critical("cannot create http pool manager: %s", e)
-        return {
-            'statusCode': 500,
-            'error': "Cannot create http pool manager"
-        }
+        raise CreatePoolManagerFailure(e)
     
     logger.debug("pageids = %s", pageids)
     cl = []
@@ -58,7 +45,7 @@ def getComponentList(**kwargs):
                 timeout=int(timeout)
             )
         except Exception as e:
-            logger.error("cannot retrieve components: %s", e)
+            raise HttpRequestError(e)
         else:
             details = json.loads(response.data.decode("utf-8"))
             print(details)
