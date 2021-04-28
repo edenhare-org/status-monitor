@@ -19,5 +19,5 @@ class HttpRequestError(Error):
     pass
 
 
-class MetricPushFailure(Error):
+class MetricsPushFailure(Error):
     pass
