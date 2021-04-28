@@ -39,11 +39,11 @@ __author__ = "chris.hare@icloud.com"
 logger = logging.getLogger()
 logger.setLevel("INFO")
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format=
     "%(asctime)s %(levelname)-8s %(module)s.%(funcName)s.%(lineno)d %(message)s",
 )
-logger.propagate = True
+
 logger.info("%s Module Version %s/%s", __name__, __version__, __author__)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("CloudWatch").setLevel(logging.WARNING)
@@ -180,6 +180,8 @@ if __name__ == "__main__":
 
     # Configure the log file
     fh = logging.FileHandler('monitor.log')
+    formatter="%(asctime)s %(levelname)-8s %(module)s.%(funcName)s.%(lineno)d %(message)s"
+    fh.formatter = formatter
     logger.addHandler(fh)
     
     try:
@@ -187,4 +189,6 @@ if __name__ == "__main__":
     except FileNotFoundError:
         click.secho(f"The provided configuration file '{options.CONFIG}' does not exit.", fg='red')
         sys.exit(1)
+        
+    click.secho("execution complete.", fg='green')
 
