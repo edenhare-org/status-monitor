@@ -11,7 +11,6 @@ import os
 import logging
 import time
 
-
 try:
     import yaml
 except Exception as error:
@@ -67,7 +66,7 @@ def main(**kwargs):
         configFile = "endpoints.yaml"
     print(configFile)
     # load the endpoint config file, endpoints.yaml
-    
+
     if os.path.isfile(configFile) is False:
         logger.critical("config: %s not found.", configFile)
         raise FileNotFoundError
@@ -132,16 +131,14 @@ def main(**kwargs):
 
             if __name__ == "__main__":
                 click.secho(
-                    (
-                    f"endpoint: {response.get('url')} " 
-                    f"status: {response.get('endpoint').get('message')} "
-                    f"({response.get('endpoint').get('status')}) "
-                    f"time: {response.get('endpoint').get('time'):.2f}ms "
-                    f"metrics: {cw_response.get('body', 'disabled')} "
-                    f"{cw_response.get('statusCode', '')}"
-                    ),
+                    (f"endpoint: {response.get('url')} "
+                     f"status: {response.get('endpoint').get('message')} "
+                     f"({response.get('endpoint').get('status')}) "
+                     f"time: {response.get('endpoint').get('time'):.2f}ms "
+                     f"metrics: {cw_response.get('body', 'disabled')} "
+                     f"{cw_response.get('statusCode', '')}"),
                     fg='cyan')
-                
+
             logger.info(
                 "endpoint: %s status: %s(%s) time: %s ms metrics: %s(%s)",
                 response.get("url"),
@@ -158,41 +155,48 @@ def main(**kwargs):
 
         logger.info("pausing for %s seconds",
                     config.get('monitor').get('delay', 60))
-        sys.exit(9)
         time.sleep(config.get('monitor').get('delay', 60))
         # end of while
     # end of def
 
 
 if __name__ == "__main__":
-    
+
     import optparse
     import click
-    
+
     optionList = {}
     parser = optparse.OptionParser("usage: %prog [options] arg1 arg2")
-    
-    parser.add_option("-f", "--file", 
+
+    parser.add_option(
+        "-f",
+        "--file",
         dest="config",
         default="endpoints.yaml",
         type="string",
         help="specify the configuration YAML file")
-    
-    parser.add_option("-l", "--log", 
+
+    parser.add_option(
+        "-l",
+        "--log",
         dest="logfile",
         type="string",
         help="specify the local log file.  If not specified, it is disabled.")
 
-    parser.add_option("-v", "--version", 
+    parser.add_option(
+        "-v",
+        "--version",
         dest="version",
         action="store_true",
-        help="print version information")    
-    
-    parser.add_option("-r", "--runonce", 
+        help="print version information")
+
+    parser.add_option(
+        "-r",
+        "--runonce",
         dest="runonce",
         default="store_false",
         action="store_true",
-        help="evaluate all of the endpoints once and exit")    
+        help="evaluate all of the endpoints once and exit")
 
     # args should be empty because only options are used
     (options, args) = parser.parse_args()
@@ -201,7 +205,9 @@ if __name__ == "__main__":
     # CONFIG = options.CONFIG
 
     if options.version is True:
-        click.secho(f"{os.path.basename(sys.argv[0])} Version {__version__}/{__author__}", fg='yellow')
+        click.secho(
+            f"{os.path.basename(sys.argv[0])} Version {__version__}/{__author__}",
+            fg='yellow')
         click.secho(f"{__copyright__}", fg='yellow')
         sys.exit(0)
 
@@ -211,17 +217,21 @@ if __name__ == "__main__":
         # Configure the log file
         lhStdout = logger.handlers[0]  # stdout is the only handler initially
         fh = logging.FileHandler('monitor.log')
-        formatter=logging.Formatter("%(asctime)s %(levelname)-8s %(module)s.%(funcName)s.%(lineno)d %(message)s")
+        formatter = logging.Formatter(
+            "%(asctime)s %(levelname)-8s %(module)s.%(funcName)s.%(lineno)d %(message)s"
+        )
         fh.setFormatter(formatter)
         logger.addHandler(fh)
         logger.removeHandler(lhStdout)
         logger.propogate = False
-    
+
     try:
         main(ConfigFile=options.config, Loop=options.runonce)
     except FileNotFoundError:
-        click.secho(f"The provided configuration file '{options.config}' does not exit.", fg='red')
+        click.secho(
+            f"The provided configuration file '{options.config}' does not exit.",
+            fg='red')
         sys.exit(1)
-        
+
     click.secho("execution complete.", fg='green')
 
