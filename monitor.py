@@ -64,7 +64,7 @@ def main(**kwargs):
 
     if configFile is None:
         configFile = "endpoints.yaml"
-    print(configFile)
+
     # load the endpoint config file, endpoints.yaml
 
     if os.path.isfile(configFile) is False:
@@ -77,6 +77,11 @@ def main(**kwargs):
     connectionTimeout = float(config.get('connection').get('timeout'))
     connectionRetries = int(config.get('connection').get('retries'))
 
+    if config.get('monitor').get('loglevel', None) is not None:
+        logger.setLevel(
+            config.get('monitor').get('loglevel')
+            )
+    
     logger.info("Initializing loop")
     # TODO: This code doesn't yet know how to send a POST with a 
     # body and header
