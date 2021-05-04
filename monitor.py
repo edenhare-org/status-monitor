@@ -171,7 +171,7 @@ if __name__ == "__main__":
     import click
 
     optionList = {}
-    parser = optparse.OptionParser("usage: %prog [options] arg1 arg2")
+    parser = optparse.OptionParser("usage: %prog [options]")
 
     parser.add_option(
         "-f",
