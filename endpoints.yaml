@@ -14,12 +14,12 @@ connection:
     
 statuspage:
   # Statuspage.io
-  apiKey: 98940f25-5813-41f2-bce6-cfdcbfd251dc
+  apiKey: 
   # This example assumes you only have one page in your StatusPage
   # account. If you have multiple pages, like a public ad a private
   # page, adding the componentid and the pageid to the api/endpoint
   # section would be a good idea.
-  pageId: j0wsqcqrh6y4
+  pageId: 
   # URL for the API endpoint
   baseUrl: "https://api.statuspage.io/v1"
   # how many sequential failures before we conclude the endpoint is
@@ -37,8 +37,8 @@ cloudwatch:
 
 apiList:
   # This is a list of the endpoints/APIs we want to test.
-  - name: "LabR Website"
-    url: "http://www.labr.net"
+  - name: NAME
+    url: UR
     method: "GET"
     # the expected response code
     status: 200
@@ -49,5 +49,5 @@ apiList:
     # StatusPage component id.  This is used to update the operational
     # status usinjg the API or through email automation by using the 
     # API to look up the component email.
-    componentid: w8c45zcrwhh4
+    componentid: 
 
